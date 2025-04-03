@@ -14,6 +14,7 @@ load_dotenv()
 
 # Получаем токен
 TOKEN = os.getenv("TOKEN")
+SELF_PING_URL = os.getenv("SELF_PING_URL")
 
 # Инициализируем бота и диспетчера
 bot = Bot(token=TOKEN)
@@ -45,6 +46,16 @@ app = Flask(__name__)
 def index():
     return "Бот работает в фоновом режиме!"
 
+# Функция self-ping, чтобы Render не засыпал
+async def keep_awake():
+    while True:
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(SELF_PING_URL) as response:
+                    print(f"Self-ping: {response.status}")
+            except Exception as e:
+                print(f"Self-ping error: {e}")
+        await asyncio.sleep(1)  # Пинг каждые 5 минут
 
 # Хэндлер для кнопки "Девушки юморклуба"
 @dp.callback_query(lambda c: c.data == "show_girls")
