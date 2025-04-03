@@ -1,5 +1,6 @@
 import os
 import mysql.connector
+import aiohttp 
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
@@ -21,10 +22,10 @@ dp = Dispatcher()
 # Подключение к базе данных MySQL
 def get_db_connection():
     return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),  # Хост базы данных из переменных окружения
-        user=os.getenv("DB_USER"),  # Имя пользователя базы данных
-        password=os.getenv("DB_PASSWORD"),  # Пароль
-        database=os.getenv("DB_NAME"),  # Имя базы данных
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
         port=int(os.getenv("DB_PORT"))
     )
 
@@ -49,7 +50,6 @@ async def show_girls(callback_query: CallbackQuery):
 
     girls.sort(key=lambda x: x['Name'])
 
-    # Создаём инлайн-кнопки с именами девушек
     keyboard = InlineKeyboardBuilder()
     for girl in girls:
         keyboard.button(text=girl['Name'], callback_data=f"show_info_{girl['GirlID']}")
@@ -60,7 +60,6 @@ async def show_girls(callback_query: CallbackQuery):
     await bot.send_message(callback_query.from_user.id, "Наши прекрасные девушки:", reply_markup=keyboard)
 
 
-# Хэндлер для выбора конкретной девушки
 @dp.callback_query(lambda c: c.data.startswith("show_info_"))
 async def show_girl_info(callback_query: CallbackQuery):
     girl_id = callback_query.data.split("_")[2]
@@ -68,12 +67,10 @@ async def show_girl_info(callback_query: CallbackQuery):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Получаем информацию о девушке
     cursor.execute("SELECT * FROM girls WHERE GirlID = %s", (girl_id,))
     girl = cursor.fetchone()
 
     if girl:
-        # Получаем любимые цветы, сладости и фрукты
         cursor.execute("""
             SELECT f.Name 
             FROM flowers f 
@@ -98,31 +95,36 @@ async def show_girl_info(callback_query: CallbackQuery):
         """, (girl_id,))
         fruits = cursor.fetchall()
 
-        # Формируем информацию
         info = f"<b>💖 {girl['Name']} 💖</b>\n\n"
 
-        # Добавляем любимые цветы
         info += f"<b>🌸 Любимые цветы:</b> " + (", ".join(
             [flower['Name'] for flower in flowers]) if flowers else "Нет любимых цветов.") + "\n"
 
-        # Добавляем любимые сладости
         info += f"<b>🍬 Любимые сладости:</b> " + (", ".join(
             [sweet['Name'] for sweet in sweets]) if sweets else "Нет любимых сладостей.") + "\n"
 
-        # Добавляем любимые фрукты
         info += f"<b>🍎 Любимые фрукты/ягоды:</b> " + (", ".join(
             [fruit['Name'] for fruit in fruits]) if fruits else "Нет любимых фруктов.") + "\n\n"
 
-        info += f"<i>📝 Дополнительная информация:</i> {girl['Info']}" if girl['Info']!=None else ""
+        info += f"<i>📝 Дополнительная информация:</i> {girl['Info']}" if girl['Info'] != None else ""
 
-        # Отправляем информацию пользователю
         await bot.send_message(callback_query.from_user.id, info, parse_mode="HTML")
     else:
         await bot.send_message(callback_query.from_user.id, "Девушка не найдена.")
 
+async def keep_awake():
+    while True:
+        async with aiohttp.ClientSession() as session:
+            try:
+                await session.get("https://your-bot-on-render.com")
+            except Exception as e:
+                print(f"Self-ping failed: {e}")
+        await asyncio.sleep(300)  # Пинг каждые 5 минут
+
 
 # Запуск бота
 async def main():
+    asyncio.create_task(keep_awake())  # Запускаем self-ping в фоне
     try:
         print("Бот запускается...")
         await dp.start_polling(bot)
