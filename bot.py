@@ -1,6 +1,5 @@
 import os
 import mysql.connector
-import aiohttp 
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
@@ -8,6 +7,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import asyncio
 from flask import Flask
+from threading import Thread
 
 # Загружаем переменные окружения из .env
 load_dotenv()
@@ -119,26 +119,33 @@ async def show_girl_info(callback_query: CallbackQuery):
     else:
         await bot.send_message(callback_query.from_user.id, "Девушка не найдена.")
 
-async def keep_awake():
-    while True:
-        async with aiohttp.ClientSession() as session:
-            try:
-                await session.get("https://your-bot-on-render.com")
-            except Exception as e:
-                print(f"Self-ping failed: {e}")
-        await asyncio.sleep(300)  # Пинг каждые 5 минут
 
-
-# Запуск бота
-async def main():
+# Функция для запуска бота
+async def start_polling():
     try:
-        print("Бот запускается...")
+        print("Запуск бота...")
         await dp.start_polling(bot)
     except Exception as e:
         print(f"Ошибка при запуске бота: {e}")
     finally:
         await bot.close()
 
-if __name__ == "__main__":
-    asyncio.create_task(main())
+
+# Функция для запуска Flask-приложения
+def run_flask():
     app.run(host="0.0.0.0", port=5000)
+
+
+# Основная функция, которая запускает Flask и бот
+def run():
+    # Запускаем Flask-приложение в отдельном потоке
+    thread = Thread(target=run_flask)
+    thread.daemon = True
+    thread.start()
+
+    # Запуск бота
+    asyncio.run(start_polling())
+
+
+if __name__ == "__main__":
+    run()
