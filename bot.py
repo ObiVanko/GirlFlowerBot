@@ -3,7 +3,7 @@ import aiohttp
 import mysql.connector
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from aiogram.types import MenuButtonCommands, CallbackQuery, BotCommand, BotCommandScopeDefault
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import asyncio
@@ -47,6 +47,20 @@ app = Flask(__name__)
 def index():
     return "Бот работает в фоновом режиме!"
 
+async def on_startup():
+    await set_bot_commands(bot)
+    await set_menu_button(bot)
+
+async def set_menu_button(bot: Bot):
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
+async def set_bot_commands(bot: Bot):
+    commands = [
+        BotCommand(command="start", description="Запуск бота"),
+        BotCommand(command="girls", description="Девушки юморклуба")
+    ]
+    await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
+
 # Функция self-ping, чтобы Render не засыпал
 async def keep_awake():
     while True:
@@ -59,9 +73,10 @@ async def keep_awake():
         await asyncio.sleep(300)  # Пинг каждые 5 минут
 
 # Хэндлер для кнопки "Девушки юморклуба"
-@dp.callback_query(lambda c: c.data == "show_girls")
+#@dp.callback_query(lambda c: c.data == "show_girls")
+@dp.message(Command('girls'))
 @dp.message(Command('start'))
-async def show_girls(callback_query: CallbackQuery):
+async def show_girls(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT GirlID, Name FROM girls")
@@ -76,7 +91,7 @@ async def show_girls(callback_query: CallbackQuery):
     keyboard.adjust(2)
     keyboard = keyboard.as_markup()
 
-    await bot.send_message(callback_query.from_user.id, "Наши прекрасные девушки:", reply_markup=keyboard)
+    await bot.send_message(message.chat.id, "Наши прекрасные девушки:", reply_markup=keyboard)
 
 
 @dp.callback_query(lambda c: c.data.startswith("show_info_"))
@@ -137,6 +152,7 @@ async def start_polling():
     try:
         print("Запуск бота...")
         asyncio.create_task(keep_awake())
+        await on_startup()
         await dp.start_polling(bot)
     except Exception as e:
         print(f"Ошибка при запуске бота: {e}")
