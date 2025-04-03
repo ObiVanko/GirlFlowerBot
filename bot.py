@@ -1,4 +1,5 @@
 import os
+import aiohttp
 import mysql.connector
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
