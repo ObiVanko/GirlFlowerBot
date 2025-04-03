@@ -135,6 +135,7 @@ async def show_girl_info(callback_query: CallbackQuery):
 async def start_polling():
     try:
         print("Запуск бота...")
+        asyncio.create_task(keep_awake())
         await dp.start_polling(bot)
     except Exception as e:
         print(f"Ошибка при запуске бота: {e}")
