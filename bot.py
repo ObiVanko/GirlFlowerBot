@@ -55,7 +55,7 @@ async def keep_awake():
                     print(f"Self-ping: {response.status}")
             except Exception as e:
                 print(f"Self-ping error: {e}")
-        await asyncio.sleep(1)  # Пинг каждые 5 минут
+        await asyncio.sleep(300)  # Пинг каждые 5 минут
 
 # Хэндлер для кнопки "Девушки юморклуба"
 @dp.callback_query(lambda c: c.data == "show_girls")
