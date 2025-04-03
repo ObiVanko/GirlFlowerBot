@@ -21,10 +21,11 @@ dp = Dispatcher()
 # Подключение к базе данных MySQL
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",  # Здесь укажи свой хост
-        user="root",  # Имя пользователя базы данных
-        password="1234",  # Пароль к базе данных
-        database="girlflowerdb",  # Имя базы данных
+        host=os.getenv("DB_HOST"),  # Хост базы данных из переменных окружения
+        user=os.getenv("DB_USER"),  # Имя пользователя базы данных
+        password=os.getenv("DB_PASSWORD"),  # Пароль
+        database=os.getenv("DB_NAME"),  # Имя базы данных
+        port=int(os.getenv("DB_PORT"))
     )
 
 ''' 
@@ -43,7 +44,7 @@ async def start(message: types.Message):
 async def show_girls(callback_query: CallbackQuery):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT GirlID, Name FROM Girls")
+    cursor.execute("SELECT GirlID, Name FROM girls")
     girls = cursor.fetchall()
 
     girls.sort(key=lambda x: x['Name'])
@@ -68,31 +69,31 @@ async def show_girl_info(callback_query: CallbackQuery):
     cursor = conn.cursor(dictionary=True)
 
     # Получаем информацию о девушке
-    cursor.execute("SELECT * FROM Girls WHERE GirlID = %s", (girl_id,))
+    cursor.execute("SELECT * FROM girls WHERE GirlID = %s", (girl_id,))
     girl = cursor.fetchone()
 
     if girl:
         # Получаем любимые цветы, сладости и фрукты
         cursor.execute("""
             SELECT f.Name 
-            FROM Flowers f 
-            JOIN GirlFlowers gf ON gf.FlowerID = f.FlowerID 
+            FROM flowers f 
+            JOIN girlflowers gf ON gf.FlowerID = f.FlowerID 
             WHERE gf.GirlID = %s
         """, (girl_id,))
         flowers = cursor.fetchall()
 
         cursor.execute("""
             SELECT s.Name 
-            FROM Sweets s 
-            JOIN GirlSweets gs ON gs.SweetID = s.SweetID 
+            FROM sweets s 
+            JOIN girlsweets gs ON gs.SweetID = s.SweetID 
             WHERE gs.GirlID = %s
         """, (girl_id,))
         sweets = cursor.fetchall()
 
         cursor.execute("""
             SELECT fr.Name 
-            FROM Fruits fr 
-            JOIN GirlFruits gf ON gf.FruitID = fr.FruitID 
+            FROM fruits fr 
+            JOIN girlfruits gf ON gf.FruitID = fr.FruitID 
             WHERE gf.GirlID = %s
         """, (girl_id,))
         fruits = cursor.fetchall()
