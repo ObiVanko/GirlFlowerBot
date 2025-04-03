@@ -7,6 +7,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQu
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import asyncio
+from flask import Flask
 
 # Загружаем переменные окружения из .env
 load_dotenv()
@@ -38,6 +39,12 @@ async def start(message: types.Message):
     ])
     await message.answer()#("Привет! Выберите опцию:", reply_markup=keyboard)
 '''
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "Бот работает в фоновом режиме!"
+
 
 # Хэндлер для кнопки "Девушки юморклуба"
 @dp.callback_query(lambda c: c.data == "show_girls")
@@ -124,7 +131,6 @@ async def keep_awake():
 
 # Запуск бота
 async def main():
-    asyncio.create_task(keep_awake())  # Запускаем self-ping в фоне
     try:
         print("Бот запускается...")
         await dp.start_polling(bot)
@@ -133,6 +139,6 @@ async def main():
     finally:
         await bot.close()
 
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.create_task(main())
+    app.run(host="0.0.0.0", port=5000)
